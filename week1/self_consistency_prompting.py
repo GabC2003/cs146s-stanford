@@ -1,4 +1,7 @@
 import os
+
+# Fix for Ollama 502 error (bypass proxy for localhost)
+os.environ["NO_PROXY"] = "localhost,127.0.0.1"
 import re
 from collections import Counter
 from dotenv import load_dotenv
@@ -9,7 +12,7 @@ load_dotenv()
 NUM_RUNS_TIMES = 5
 
 # TODO: Fill this in! Try to get as close to 100% correctness across all runs as possible.
-YOUR_SYSTEM_PROMPT = ""
+YOUR_SYSTEM_PROMPT = "You are a helpful assistant. Solve the math problem step by step to ensure accuracy. Show your reasoning clearly before providing the final answer.You can reflect on the answers and try to find the best solution"
 
 USER_PROMPT = """
 Solve this problem, then give the final answer on the last line as "Answer: <number>".

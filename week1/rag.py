@@ -1,8 +1,14 @@
 import os
+
+# Fix for Ollama 502 error (bypass proxy for localhost)
+os.environ["NO_PROXY"] = "localhost,127.0.0.1"
+
 import re
 from typing import List, Callable
 from dotenv import load_dotenv
 from ollama import chat
+
+from ollama import ResponseError
 
 load_dotenv()
 
@@ -37,7 +43,10 @@ QUESTION = (
 
 
 # TODO: Fill this in!
-YOUR_SYSTEM_PROMPT = ""
+YOUR_SYSTEM_PROMPT = """
+    Do not make up any information. Only use the provided Context.
+    - Write clear, standard Python with necessary imports.
+"""
 
 
 # For this simple example
@@ -56,7 +65,7 @@ def YOUR_CONTEXT_PROVIDER(corpus: List[str]) -> List[str]:
 
     For example, return [] to simulate missing context, or [corpus[0]] to include the API docs.
     """
-    return []
+    return [corpus[0]] if corpus else []
 
 
 def make_user_prompt(question: str, context_docs: List[str]) -> str:
@@ -96,17 +105,23 @@ def test_your_prompt(system_prompt: str, context_provider: Callable[[List[str]],
 
     for idx in range(NUM_RUNS_TIMES):
         print(f"Running test {idx + 1} of {NUM_RUNS_TIMES}")
-        response = chat(
-            model="llama3.1:8b",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            options={"temperature": 0.0},
-        )
-        output_text = response.message.content
-        code = extract_code_block(output_text)
-        missing = [s for s in REQUIRED_SNIPPETS if s not in code]
+        try:
+            response = chat(
+                model="llama3.1:8b",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                options={"temperature": 0.0},
+            )
+            output_text = response.message.content
+            code = extract_code_block(output_text)
+            missing = [s for s in REQUIRED_SNIPPETS if s not in code]
+        except ResponseError as e:
+            print("Ollama ResponseError!")
+            print("Status code:", e.status_code)
+            print("Response text:", e.error) 
+            raise
         if not missing:
             print(output_text)
             print("SUCCESS")

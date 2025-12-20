@@ -1,6 +1,9 @@
 import ast
 import json
 import os
+
+# Fix for Ollama 502 error (bypass proxy for localhost)
+os.environ["NO_PROXY"] = "localhost,127.0.0.1"
 from typing import Any, Dict, List, Optional, Tuple, Callable
 
 from dotenv import load_dotenv
@@ -70,7 +73,31 @@ TOOL_REGISTRY: Dict[str, Callable[..., str]] = {
 # ==========================
 
 # TODO: Fill this in!
-YOUR_SYSTEM_PROMPT = ""
+YOUR_SYSTEM_PROMPT = """You are a helpful assistant designed to call tools.
+You have access to the following tools:
+
+1. output_every_func_return_type(file_path: str = None)
+   - Description: Return a newline-delimited list of "name: return_type" for each top-level function in the specified file.
+   - Arguments: file_path (optional string)
+
+2. add(a: int, b: int)
+   - Description: Returns the sum of a and b.
+   - Arguments: a (int), b (int)
+
+3. greet(name: str)
+   - Description: Returns a greeting message.
+   - Arguments: name (str)
+
+REQUIRED OUTPUT FORMAT:
+You MUST respond with ONLY a valid JSON object. Do not enclose it in markdown code blocks.
+Format:
+{
+  "tool": "<tool_name>",
+  "args": {
+    "<arg_name>": <value>
+  }
+}
+"""
 
 
 def resolve_path(p: str) -> str:

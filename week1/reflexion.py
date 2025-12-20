@@ -15,7 +15,7 @@ Keep the implementation minimal.
 """
 
 # TODO: Fill this in!
-YOUR_REFLEXION_PROMPT = ""
+YOUR_REFLEXION_PROMPT = "You should read the previous code seriously, and find why failures occured, after which you should try your best to fix the previous code, then check again to prevent from errors happening again"
 
 
 # Ground-truth test suite used to evaluate generated code
@@ -96,7 +96,14 @@ def your_build_reflexion_context(prev_code: str, failures: List[str]) -> str:
 
     Return a string that will be sent as the user content alongside the reflexion system prompt.
     """
-    return ""
+    failure_str = "\n".join(failures)
+    return f"""The previous code is:
+    {prev_code}
+
+    It failed these tests:
+    {failure_str}
+
+    Please fix the code and return ONLY the code."""
 
 
 def apply_reflexion(
