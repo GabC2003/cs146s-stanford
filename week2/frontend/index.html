@@ -1,74 +1,438 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Action Item Extractor</title>
-    <style>
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif; margin: 2rem auto; max-width: 800px; padding: 0 1rem; }
-      h1 { font-size: 1.5rem; }
-      textarea { width: 100%; min-height: 160px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace; }
-      button { padding: 0.5rem 1rem; }
-      .items { margin-top: 1rem; }
-      .item { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; }
-      .muted { color: #6b7280; font-size: 0.875rem; }
-      .row { display: flex; gap: 0.5rem; align-items: center; }
-    </style>
-  </head>
-  <body>
-    <h1>Action Item Extractor</h1>
-    <p class="muted">Paste notes and extract actionable items. Minimal raw HTML frontend.</p>
 
-    <label for="text">Notes</label>
-    <textarea id="text" placeholder="Paste notes here...&#10;e.g.&#10;- [ ] Set up database&#10;- Implement extract endpoint"></textarea>
-    <div class="row">
-      <label class="row"><input id="save_note" type="checkbox" checked /> Save as note</label>
-      <button id="extract">Extract</button>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Action Intelligence | Task Extractor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Inter:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      --card-bg: rgba(255, 255, 255, 0.8);
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+
+    [data-theme="dark"] {
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-gradient);
+      background-attachment: fixed;
+      color: var(--text-main);
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      animation: fadeIn 0.8s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 2.5rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 2rem;
+    }
+
+    h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem 0;
+      background: linear-gradient(to right, var(--primary), #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.75rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 1.25rem;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.5);
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      line-height: 1.6;
+      resize: vertical;
+      outline: none;
+      color: var(--text-main);
+    }
+
+    textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1.5rem;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    button {
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.95rem;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      background: #cbd5e1;
+    }
+
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.95rem;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-title h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .item-row {
+      display: flex;
+      align-items: center;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 12px;
+      margin-bottom: 0.75rem;
+      border: 1px solid transparent;
+    }
+
+    .item-row:hover {
+      border-color: var(--primary);
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    .item-row input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      margin-right: 1rem;
+      cursor: pointer;
+      accent-color: var(--primary);
+    }
+
+    .note-card {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 16px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+    }
+
+    .note-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .badge {
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--primary);
+      padding: 0.2rem 0.6rem;
+      border-radius: 99px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .loader {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, .3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="glass-card">
+      <h1>Action Intelligence</h1>
+      <p class="subtitle">Transform meeting chaos into actionable clarity using Local AI.</p>
+
+      <label for="text">Meeting Notes & Context</label>
+      <textarea id="text"
+        placeholder="Paste your notes here... e.g. 'We need to update the documentation by Friday...'"></textarea>
+
+      <div class="toolbar">
+        <label class="checkbox-wrapper">
+          <input id="save_note" type="checkbox" checked />
+          <span>Archive in History</span>
+        </label>
+        <div class="btn-group">
+          <button id="extract" class="btn-secondary">Heuristic Scan</button>
+          <button id="extract_llm" class="btn-primary">Smart Extract ✨</button>
+          <button id="list_notes" class="btn-secondary">History 📚</button>
+        </div>
+      </div>
     </div>
 
-    <div class="items" id="items"></div>
+    <div id="results_section" class="glass-card hidden">
+      <div class="section-title">
+        <h2>Action Items</h2>
+        <span id="item_count" class="badge">0 Items Found</span>
+      </div>
+      <div id="items_list"></div>
+    </div>
 
-    <script>
-      const $ = (sel) => document.querySelector(sel);
-      const itemsEl = $('#items');
-      const btn = $('#extract');
-      btn.addEventListener('click', async () => {
-        const text = $('#text').value;
-        const save = $('#save_note').checked;
-        itemsEl.textContent = 'Extracting...';
-        try {
-          const res = await fetch('/action-items/extract', {
+    <div id="notes_section" class="glass-card hidden">
+      <div class="section-title">
+        <h2>History & Archives</h2>
+      </div>
+      <div id="notes_list"></div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (sel) => document.querySelector(sel);
+    const itemsList = $('#items_list');
+    const notesList = $('#notes_list');
+    const resultsSection = $('#results_section');
+    const notesSection = $('#notes_section');
+
+    const setLoading = (btn, isLoading) => {
+      if (isLoading) {
+        btn.dataset.original = btn.innerHTML;
+        btn.innerHTML = '<span class="loader"></span> Processing...';
+        btn.disabled = true;
+      } else {
+        btn.innerHTML = btn.dataset.original || btn.innerHTML;
+        btn.disabled = false;
+      }
+    };
+
+    const renderActionItems = (items) => {
+      resultsSection.classList.remove('hidden');
+      $('#item_count').textContent = `${items.length} Items Found`;
+
+      if (!items || items.length === 0) {
+        itemsList.innerHTML = '<p style="text-align: center; color: var(--text-muted);">No action items detected in this context.</p>';
+        return;
+      }
+
+      itemsList.innerHTML = items.map(it => `
+                <div class="item-row">
+                    <input type="checkbox" data-id="${it.id}" />
+                    <span>${it.text}</span>
+                </div>
+            `).join('');
+
+      itemsList.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', async (e) => {
+          const id = e.target.getAttribute('data-id');
+          await fetch(`/action-items/${id}/done`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, save_note: save }),
+            body: JSON.stringify({ done: e.target.checked }),
           });
-          if (!res.ok) throw new Error('Request failed');
-          const data = await res.json();
-          if (!data.items || data.items.length === 0) {
-            itemsEl.innerHTML = '<p class="muted">No action items found.</p>';
-            return;
-          }
-          itemsEl.innerHTML = data.items.map(it => (
-            `<div class="item"><input type="checkbox" data-id="${it.id}" /> <span>${it.text}</span></div>`
-          )).join('');
-          itemsEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-            cb.addEventListener('change', async (e) => {
-              const id = e.target.getAttribute('data-id');
-              await fetch(`/action-items/${id}/done`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ done: e.target.checked }),
-              });
-            });
-          });
-        } catch (err) {
-          console.error(err);
-          itemsEl.textContent = 'Error extracting items';
-        }
+          const row = e.target.parentElement;
+          row.style.opacity = e.target.checked ? '0.5' : '1';
+          row.style.textDecoration = e.target.checked ? 'line-through' : 'none';
+        });
       });
+    };
 
-    </script>
-  </body>
-  </html>
+    const handleExtract = async (endpoint, btn) => {
+      const text = $('#text').value;
+      const save = $('#save_note').checked;
+      if (!text.trim()) return;
 
+      setLoading(btn, true);
+      notesSection.classList.add('hidden');
 
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, save_note: save }),
+        });
+        if (!res.ok) throw new Error('Extraction failed');
+        const data = await res.json();
+        renderActionItems(data.items);
+        resultsSection.scrollIntoView({ behavior: 'smooth' });
+      } catch (err) {
+        console.error(err);
+        resultsSection.classList.remove('hidden');
+        itemsList.innerHTML = `<p style="color: #ef4444; text-align: center;">${err.message}</p>`;
+      } finally {
+        setLoading(btn, false);
+      }
+    };
+
+    $('#extract').addEventListener('click', (e) => handleExtract('/action-items/extract', e.currentTarget));
+    $('#extract_llm').addEventListener('click', (e) => handleExtract('/action-items/extract-llm', e.currentTarget));
+
+    $('#list_notes').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+
+      // Toggle logic
+      if (!notesSection.classList.contains('hidden')) {
+        notesSection.classList.add('hidden');
+        btn.innerHTML = 'History 📚';
+        return;
+      }
+
+      setLoading(btn, true);
+      resultsSection.classList.add('hidden');
+
+      try {
+        const res = await fetch('/notes');
+        if (!res.ok) throw new Error('Failed to fetch library');
+        const data = await res.json();
+
+        notesSection.classList.remove('hidden');
+        btn.innerHTML = 'Hide History 🙈';
+
+        if (data.length === 0) {
+          notesList.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">Your library is currently empty.</p>';
+          return;
+        }
+
+        notesList.innerHTML = data.map(note => `
+                    <div class="note-card">
+                        <div class="note-meta">
+                            <span>REF #00${note.id}</span>
+                            <span>${new Date(note.created_at).toLocaleString()}</span>
+                        </div>
+                        <div style="font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap; color: var(--text-main);">${note.content}</div>
+                        <div style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+                            <span class="badge">${note.action_items.length} Extracted Tasks</span>
+                        </div>
+                    </div>
+                `).join('');
+        notesSection.scrollIntoView({ behavior: 'smooth' });
+      } catch (err) {
+        console.error(err);
+        notesSection.classList.remove('hidden');
+        notesList.innerHTML = `<p style="color: #ef4444; text-align: center; padding: 2rem;">${err.message}</p>`;
+      } finally {
+        setLoading(btn, false);
+      }
+    });
+  </script>
+</body>
+
+</html>
+</body>

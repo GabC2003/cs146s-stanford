@@ -1,23 +1,35 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Dict, Optional
-
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .db import init_db
 from .routers import action_items, notes
-from . import db
 
-init_db()
 
-app = FastAPI(title="Action Item Extractor")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize DB on startup
+    init_db()
+    yield
+
+
+app = FastAPI(title="Action Item Extractor", lifespan=lifespan)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={"message": "An unexpected error occurred.", "detail": str(exc)},
+    )
 
 
 @app.get("/", response_class=HTMLResponse)
-def index() -> str:
+async def index() -> str:
     html_path = Path(__file__).resolve().parents[1] / "frontend" / "index.html"
     return html_path.read_text(encoding="utf-8")
 

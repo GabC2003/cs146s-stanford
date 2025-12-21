@@ -22,29 +22,123 @@ For each exercise, please include what prompts you used to generate the answer, 
 ### Exercise 1: Scaffold a New Feature
 Prompt: 
 ```
-TODO
+After analyzing the 'extract_action_items' function. 
+Your task is to implement an LLM-powered alternative, `extract_action_items_llm()`, that utilizes Ollama to perform action item extraction via llama3.1:8b.
+You should plan first, for reference you can go to https://ollama.com/blog/structured-outputs for knowing how to produce structured outputs, after writing codes, you should ask for my permission and check the logic carefully to prevent fatal errors.
 ``` 
 
 Generated Code Snippets:
 ```
 TODO: List all modified code files with the relevant line numbers.
+Line 92 - 139
+def extract_action_items_llm(text: str) -> List[str]:
+    """
+    LLM-powered extraction using Ollama and llama3.1:8b.
+    Uses structured JSON output to ensure reliable parsing.
+    """
+    if not text.strip():
+        return []
+
+    # Define the expected JSON schema for structured output
+    schema = {
+        "type": "object",
+        "properties": {
+            "action_items": {
+                "type": "array",
+                "items": {"type": "string"}
+            }
+        },
+        "required": ["action_items"]
+    }
+
+    try:
+        response = chat(
+            model='llama3.1:8b',
+            messages=[
+                {
+                    'role': 'system',
+                    'content': 'You are a task management assistant. Extract a list of actionable items, tasks, or commitments from the provided text. Return ONLY a JSON object.'
+                },
+                {
+                    'role': 'user',
+                    'content': f'Extract action items from this text:\n\n{text}'
+                }
+            ],
+            format=schema  # Enforcement of structured output
+        )
+        
+        # Parse the JSON response
+        result = json.loads(response.message.content)
+        extracted = result.get("action_items", [])
+        
+        # Simple cleanup: strip results and remove any empty strings
+        return [item.strip() for item in extracted if item.strip()]
+        
+    except Exception as e:
+        print(f"Error during LLM extraction: {e}")
+        # Optionally fall back to the heuristic version or return an empty list
+        return []
+
 ```
 
 ### Exercise 2: Add Unit Tests
 Prompt: 
 ```
-TODO
+As a powerful coder and helpful assistant,
+After finishing code snippets for the function above,
+Write unit tests for `extract_action_items_llm()` covering multiple inputs (e.g., bullet lists, keyword-prefixed lines, empty input) in `week2/tests/test_extract.py`.
+After that, you 'd better run the unit tests to verify the availability of the llm-powered extract function you have written.
 ``` 
 
 Generated Code Snippets:
 ```
-TODO: List all modified code files with the relevant line numbers.
+def test_extract_llm_empty():
+    assert extract_action_items_llm("") == []
+    assert extract_action_items_llm("   ") == []
+
+
+@pytest.mark.skipif(settings.SKIP_LLM_TESTS, reason="Skipping LLM tests")
+def test_extract_llm_bullets():
+    text = """
+    - Finish the report
+    * [ ] Send email to team
+    1. Update the wiki
+    """
+    items = extract_action_items_llm(text)
+    # LLM might rephrase slightly, but should capture the core
+    assert any("report" in item.lower() for item in items)
+    assert any("email" in item.lower() for item in items)
+    assert any("wiki" in item.lower() for item in items)
+
+
+@pytest.mark.skipif(settings.SKIP_LLM_TESTS, reason="Skipping LLM tests")
+def test_extract_llm_keywords():
+    text = """
+    todo: buy milk
+    action: fix the bug
+    next: refactor the code
+    """
+    items = extract_action_items_llm(text)
+    assert any("milk" in item.lower() for item in items)
+    assert any("bug" in item.lower() for item in items)
+    assert any("refactor" in item.lower() for item in items)
+
+
+@pytest.mark.skipif(settings.SKIP_LLM_TESTS, reason="Skipping LLM tests")
+def test_extract_llm_narrative():
+    text = "We had a meeting today. Gabriel should update the documentation by Friday and we need to schedule a follow-up."
+    items = extract_action_items_llm(text)
+    assert any("documentation" in item.lower() for item in items)
+    assert any("follow" in item.lower() for item in items)
+
 ```
 
 ### Exercise 3: Refactor Existing Code for Clarity
 Prompt: 
 ```
-TODO
+week2
+ You have done a great job,now as a powerful coding expert and careful developer,you are required to perform a refactor of the code in the backend, focusing in particular on well-defined API contracts/schemas, database layer cleanup, app lifecycle/configuration, error handling.
+Before making any changes, ask for my permission and show how you wanna refactor the existing code and why.
 ``` 
 
 Generated/Modified Code Snippets:

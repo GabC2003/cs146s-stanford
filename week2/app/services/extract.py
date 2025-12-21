@@ -1,14 +1,10 @@
-from __future__ import annotations
+from ..config import settings
 
-import os
 import re
-from typing import List
 import json
-from typing import Any
+from typing import List
 from ollama import chat
-from dotenv import load_dotenv
 
-load_dotenv()
 
 BULLET_PREFIX_PATTERN = re.compile(r"^\s*([-*•]|\d+\.)\s+")
 KEYWORD_PREFIXES = (
@@ -87,3 +83,52 @@ def _looks_imperative(sentence: str) -> bool:
         "investigate",
     }
     return first.lower() in imperative_starters
+
+
+def extract_action_items_llm(text: str) -> List[str]:
+    """
+    LLM-powered extraction using Ollama and llama3.1:8b.
+    Uses structured JSON output to ensure reliable parsing.
+    """
+    if not text.strip():
+        return []
+
+    # Define the expected JSON schema for structured output
+    schema = {
+        "type": "object",
+        "properties": {
+            "action_items": {
+                "type": "array",
+                "items": {"type": "string"}
+            }
+        },
+        "required": ["action_items"]
+    }
+
+    try:
+        response = chat(
+            model=settings.LLM_MODEL,
+            messages=[
+                {
+                    'role': 'system',
+                    'content': 'You are a task management assistant. Extract a list of actionable items, tasks, or commitments from the provided text. Return ONLY a JSON object.'
+                },
+                {
+                    'role': 'user',
+                    'content': f'Extract action items from this text:\n\n{text}'
+                }
+            ],
+            format=schema  # Enforcement of structured output
+        )
+        
+        # Parse the JSON response
+        result = json.loads(response.message.content)
+        extracted = result.get("action_items", [])
+        
+        # Simple cleanup: strip results and remove any empty strings
+        return [item.strip() for item in extracted if item.strip()]
+        
+    except Exception as e:
+        print(f"Error during LLM extraction: {e}")
+        # Optionally fall back to the heuristic version or return an empty list
+        return []
